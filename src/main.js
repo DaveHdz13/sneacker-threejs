@@ -47,6 +47,20 @@ scene.add(shoe); */
 
 // Load sneaker model
 let sneaker = null;
+const sneakerMaterials = [];
+const textureLoader = new THREE.TextureLoader();
+const colorVariants = {};
+let originalDiffuseMap = null; // will come from the GLB
+
+colorVariants.cyan  = textureLoader.load('/models/texture_diffuse_cyan.png');
+colorVariants.green = textureLoader.load('/models/texture_diffuse_green.png');
+colorVariants.red   = textureLoader.load('/models/texture_diffuse_red.png');
+
+// Make them compatible with GLTF UVs
+Object.values(colorVariants).forEach((tex) => {
+  tex.flipY = false;
+});
+
 const loader = new GLTFLoader();
 loader.load(
     '/models/sneaker.glb',
@@ -60,14 +74,32 @@ loader.load(
         scene.add(model);
         sneaker = model;
 
+        model.traverse((child) => {
+            if (child.isMesh && child.material) {
+                const mat = child.material;
+
+                // Save reference to materials so we can swap their map later
+                sneakerMaterials.push(mat);
+
+                // Grab the original diffuse map once and use it as the "yellow" variant
+                if (!originalDiffuseMap && mat.map) {
+                    originalDiffuseMap = mat.map;
+                    colorVariants.yellow = originalDiffuseMap;
+                }
+            }
+        });
+        
+        // Optional: start with yellow explicitly
+        setSneakerVariant('yellow');
+        console.log('Sneaker materials:', sneakerMaterials);
         console.log("Model loaded: ", model);
     },
-    (progress) => {
+    /* (progress) => {
         console.log(`Loading model... ${(progress.loaded / progress.total) * 100}%`);
-    },
-    (error) => {
+    }, */
+    /* (error) => {
         console.error("Error loading model:", error);
-    }
+    } */
 );
 
 // Ground plane
@@ -104,8 +136,31 @@ function animate() {
     requestAnimationFrame(animate);
 
     // shoe.rotation.y += 0.002;
-    sneaker.rotation.y += 0.002;
+    if (sneaker) {
+        sneaker.rotation.y += 0.002;
+    }
     controls.update();
     renderer.render(scene, camera);
 }
 animate();
+
+// UI - Color change
+function setSneakerVariant(variantKey) {
+  const tex = colorVariants[variantKey];
+  if (!tex) return;
+
+  sneakerMaterials.forEach((mat) => {
+    mat.map = tex;
+    mat.needsUpdate = true;
+  });
+}
+
+
+const buttons = document.querySelectorAll('.ui button');
+
+buttons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const variant = btn.getAttribute('data-variant');
+    setSneakerVariant(variant);
+  });
+});
