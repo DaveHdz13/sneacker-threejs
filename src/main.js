@@ -1,6 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // Renderer
 const canvas = document.getElementById('webgl');
@@ -35,14 +36,39 @@ scene.add(directionalLight);
 
 // Mesh (placeholder for sneaker model)
 const geometry = new THREE.BoxGeometry(1, 0.5, 2);
-const material = new THREE.MeshStandardMaterial({
+/* const material = new THREE.MeshStandardMaterial({
     color: 0xff7b00,
     roughness: 0.4,
     metalness: 0.1
 })
 const shoe = new THREE.Mesh(geometry, material);
 shoe.rotation.y = Math.PI * 0.25;
-scene.add(shoe);
+scene.add(shoe); */
+
+// Load sneaker model
+let sneaker = null;
+const loader = new GLTFLoader();
+loader.load(
+    '/models/sneaker.glb',
+    (gltf) => {
+        const model = gltf.scene;
+
+        model.position.set(0, -0.2, 0);
+        model.scale.set(1, 1, 1);
+        model.rotation.y = Math.PI * 0.25;
+
+        scene.add(model);
+        sneaker = model;
+
+        console.log("Model loaded: ", model);
+    },
+    (progress) => {
+        console.log(`Loading model... ${(progress.loaded / progress.total) * 100}%`);
+    },
+    (error) => {
+        console.error("Error loading model:", error);
+    }
+);
 
 // Ground plane
 const planeGo = new THREE.CircleGeometry(2, 64);
@@ -77,7 +103,8 @@ window.addEventListener('resize', () => {
 function animate() {
     requestAnimationFrame(animate);
 
-    shoe.rotation.y += 0.002;
+    // shoe.rotation.y += 0.002;
+    sneaker.rotation.y += 0.002;
     controls.update();
     renderer.render(scene, camera);
 }
